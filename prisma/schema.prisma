@@ -1,0 +1,297 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  CONDUCTEUR
+  CHEF_CFO
+  CHEF_CFA
+  CLIENT
+}
+
+enum Lot {
+  CFO
+  CFA
+}
+
+enum WorkStatus {
+  NON_RENSEIGNE
+  A_VERIFIER
+  SANS_OBJET
+  A_FAIRE
+  EN_COURS
+  TERMINE
+  BLOQUE
+}
+
+enum IssueStatus {
+  OPEN
+  RESOLVED
+}
+
+enum ProjectStatus {
+  PREPARATION
+  EN_COURS
+  RECEPTION
+  CLOS
+}
+
+enum AggregationMethod {
+  WEIGHTED_AVERAGE
+  QUANTITY_SUM
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role
+  lot          Lot?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  teamsLed        Team[]          @relation("TeamLeader")
+  progressEntries ProgressEntry[]
+  issuesOpened    Issue[]         @relation("IssueOpenedBy")
+  issuesResolved  Issue[]         @relation("IssueResolvedBy")
+  attachments     Attachment[]
+  auditLogs       AuditLog[]
+  workItemsEdited WorkItem[]      @relation("WorkItemUpdatedBy")
+}
+
+model Project {
+  id                String            @id @default(cuid())
+  name              String
+  client            String?
+  siteName          String?
+  startDate         DateTime?
+  endDate           DateTime?
+  status            ProjectStatus     @default(EN_COURS)
+  timezone          String            @default("Europe/Paris")
+  aggregationMethod AggregationMethod @default(WEIGHTED_AVERAGE)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  deletedAt         DateTime?
+
+  zones     Zone[]
+  levels    Level[]
+  systems   System[]
+  teams     Team[]
+  workItems WorkItem[]
+  snapshots ProgressSnapshot[]
+}
+
+model Zone {
+  id        String    @id @default(cuid())
+  projectId String
+  code      String
+  name      String
+  building  String?
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  project   Project    @relation(fields: [projectId], references: [id])
+  workItems WorkItem[]
+  teams     Team[]     @relation("TeamZones")
+
+  @@unique([projectId, code])
+  @@index([projectId])
+}
+
+model Level {
+  id        String    @id @default(cuid())
+  projectId String
+  label     String
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  project   Project    @relation(fields: [projectId], references: [id])
+  workItems WorkItem[]
+
+  @@unique([projectId, label])
+}
+
+model System {
+  id          String    @id @default(cuid())
+  projectId   String
+  lot         Lot
+  name        String
+  defaultUnit String    @default("u")
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  project   Project    @relation(fields: [projectId], references: [id])
+  workItems WorkItem[]
+
+  @@unique([projectId, lot, name])
+}
+
+model Team {
+  id        String    @id @default(cuid())
+  projectId String
+  lot       Lot
+  name      String
+  leaderId  String?
+  matricule String?
+  headcount Int       @default(0)
+  phone     String?
+  startDate DateTime?
+  note      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  project   Project    @relation(fields: [projectId], references: [id])
+  leader    User?      @relation("TeamLeader", fields: [leaderId], references: [id])
+  zones     Zone[]     @relation("TeamZones")
+  workItems WorkItem[]
+
+  @@index([projectId])
+}
+
+model WorkItem {
+  id           String     @id @default(cuid())
+  projectId    String
+  code         String
+  zoneId       String
+  levelId      String
+  lot          Lot
+  systemId     String
+  title        String
+  teamId       String?
+  plannedStart DateTime?
+  plannedEnd   DateTime?
+  actualStart  DateTime?
+  actualEnd    DateTime?
+  status       WorkStatus @default(NON_RENSEIGNE)
+  unit         String     @default("u")
+  qtyPlanned   Float?
+  qtyDone      Float?
+  weight       Float      @default(1)
+  material     String?
+  note         String?
+  updatedById  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  project         Project         @relation(fields: [projectId], references: [id])
+  zone            Zone            @relation(fields: [zoneId], references: [id])
+  level           Level           @relation(fields: [levelId], references: [id])
+  system          System          @relation(fields: [systemId], references: [id])
+  team            Team?           @relation(fields: [teamId], references: [id])
+  updatedBy       User?           @relation("WorkItemUpdatedBy", fields: [updatedById], references: [id])
+  progressEntries ProgressEntry[]
+  issues          Issue[]
+  attachments     Attachment[]
+
+  @@unique([projectId, code])
+  @@index([projectId, zoneId])
+  @@index([projectId, lot])
+  @@index([projectId, status])
+}
+
+model ProgressEntry {
+  id          String   @id @default(cuid())
+  workItemId  String
+  userId      String
+  field       String   @default("qtyDone")
+  previousQty Float?
+  newQty      Float?
+  note        String?
+  source      String   @default("web")
+  createdAt   DateTime @default(now())
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([workItemId])
+}
+
+model Issue {
+  id           String      @id @default(cuid())
+  workItemId   String
+  reason       String
+  description  String?
+  owner        String?
+  status       IssueStatus @default(OPEN)
+  openedById   String
+  openedAt     DateTime    @default(now())
+  resolvedById String?
+  resolvedAt   DateTime?
+  resolution   String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  workItem   WorkItem @relation(fields: [workItemId], references: [id])
+  openedBy   User     @relation("IssueOpenedBy", fields: [openedById], references: [id])
+  resolvedBy User?    @relation("IssueResolvedBy", fields: [resolvedById], references: [id])
+
+  @@index([workItemId])
+  @@index([status])
+}
+
+model Attachment {
+  id           String    @id @default(cuid())
+  workItemId   String
+  pathname     String
+  url          String
+  name         String
+  contentType  String
+  size         Int
+  uploadedById String
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  workItem   WorkItem @relation(fields: [workItemId], references: [id])
+  uploadedBy User     @relation(fields: [uploadedById], references: [id])
+
+  @@index([workItemId])
+}
+
+model ProgressSnapshot {
+  id        String   @id @default(cuid())
+  projectId String
+  date      DateTime @db.Date
+  scope     String
+  refId     String   @default("")
+  label     String
+  progress  Float
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@unique([projectId, date, scope, refId])
+  @@index([projectId, scope])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  entity    String
+  entityId  String
+  action    String
+  changes   Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
