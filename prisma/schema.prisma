@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CONDUCTEUR
+  CHEF_CFO
+  CHEF_CFA
+  CLIENT
+}
+
+enum Lot {
+  CFO
+  CFA
+}
+
+enum Status {
+  NON_RENSEIGNE
+  A_VERIFIER
+  A_FAIRE
+  EN_COURS
+  TERMINE
+  BLOQUE
+  SANS_OBJET
+}
+
+enum IssueStatus {
+  OUVERT
+  RESOLU
+}
+
+model User {
+  id               String          @id @default(cuid())
+  name             String
+  email            String          @unique
+  passwordHash     String
+  role             Role
+  lot              Lot?
+  active           Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  teamsLed         Team[]
+  audits           AuditLog[]
+  itemsUpdated     WorkItem[]
+  progressEntries  ProgressEntry[]
+  issuesOpened     Issue[]
+}
+
+model Project {
+  id          String             @id @default(cuid())
+  name        String
+  client      String?
+  siteName    String?
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String             @default("EN_COURS")
+  timezone    String             @default("UTC")
+  aggregation String             @default("MOYENNE") // MOYENNE | SOMME (RG-05)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  zones       Zone[]
+  levels      Level[]
+  systems     System[]
+  teams       Team[]
+  items       WorkItem[]
+  snapshots   ProgressSnapshot[]
+}
+
+model Zone {
+  id        String     @id @default(cuid())
+  projectId String
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  code      String
+  name      String
+  mainLot          String          @default("CFO/CFA")
+  leaderName       String?
+  plannedHeadcount Int?
+  note             String?
+  headcounts       ZoneHeadcount[]
+  building  String?
+  order     Int        @default(0)
+  deletedAt DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     WorkItem[]
+  teams     Team[]
+
+  @@unique([projectId, code])
+}
+
+model Level {
+  id        String     @id @default(cuid())
+  projectId String
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  label     String
+  order     Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     WorkItem[]
+
+  @@unique([projectId, label])
+}
+
+model System {
+  id          String     @id @default(cuid())
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lot         Lot
+  name        String
+  gridEnabled Boolean @default(true)
+  defaultUnit String     @default("u")
+  order       Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  items       WorkItem[]
+
+  @@unique([projectId, lot, name])
+}
+
+model Team {
+  id         String     @id @default(cuid())
+  projectId  String
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lot        Lot
+  leaderName String?
+  name       String
+  leaderId   String?
+  leader     User?      @relation(fields: [leaderId], references: [id])
+  matricule  String?
+  headcount  Int        @default(0)
+  phone      String?
+  startDate  DateTime?
+  note       String?
+  deletedAt  DateTime?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  zones      Zone[]
+  items      WorkItem[]
+}
+
+model WorkItem {
+  id                String          @id @default(cuid())
+  projectId         String
+  project           Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  code              String?
+  zoneId            String
+  zone              Zone            @relation(fields: [zoneId], references: [id])
+  levelId           String?
+  level             Level?          @relation(fields: [levelId], references: [id])
+  lot               Lot
+  systemId          String?
+  system            System?         @relation(fields: [systemId], references: [id])
+  title             String?
+  location          String?
+  teamId            String?
+  team              Team?           @relation(fields: [teamId], references: [id])
+  plannedHeadcount  Int?
+  plannedStart      DateTime?
+  plannedEnd        DateTime?
+  actualStart       DateTime?
+  actualEnd         DateTime?
+  status            Status          @default(NON_RENSEIGNE)
+  manualProgress    Float?
+  unit              String          @default("u")
+  qtyPlanned        Float?
+  qtyDone           Float?
+  weight            Float           @default(1)
+  material          String?
+  note              String?
+  lastUpdatedAt     DateTime?
+  lastUpdatedById   String?
+  lastUpdatedBy     User?           @relation(fields: [lastUpdatedById], references: [id])
+  deletedAt         DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  entries           ProgressEntry[]
+  issues            Issue[]
+  kind        String  @default("GRID") // GRID = classeur B, TASK = classeur A
+  responsible String?
+  crew        String?
+
+  @@unique([projectId, zoneId, levelId, systemId])
+  @@index([status])
+  @@index([lot])
+  @@index([zoneId])
+  @@index([plannedEnd])
+}
+
+model ProgressEntry {
+  id           String   @id @default(cuid())
+  workItemId   String
+  workItem     WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  date         DateTime @default(now())
+  qtyDoneTotal Float
+  comment      String?
+  authorId     String
+  author       User     @relation(fields: [authorId], references: [id])
+}
+
+model Issue {
+  id          String      @id @default(cuid())
+  workItemId  String
+  workItem    WorkItem    @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  description String
+  status      IssueStatus @default(OUVERT)
+  openedAt    DateTime    @default(now())
+  closedAt    DateTime?
+  resolution  String?
+  openedById  String
+  openedBy    User        @relation(fields: [openedById], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  entity    String
+  entityId  String
+  action    String
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model ProgressSnapshot {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date      DateTime
+  scope     String // GLOBAL | ZONE | LOT
+  scopeId   String   @default("")
+  progress  Float
+
+  @@unique([projectId, date, scope, scopeId])
+}
+
+
+
+
+
+
+
+model ZoneHeadcount {
+  id      String   @id @default(cuid())
+  zoneId  String
+  zone    Zone     @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  date    DateTime
+  planned Int?
+  present Int
+
+  @@unique([zoneId, date])
+}
