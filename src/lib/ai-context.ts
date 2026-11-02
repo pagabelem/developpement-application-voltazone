@@ -95,6 +95,8 @@ export async function buildDigest(user: SessionUser, scope: AiScope) {
   const bld = new Map<string, number[]>();
   snaps.filter((s) => dates[0] && isoDay(s.date) === dates[0] && s.building && (!scope.site || s.building === scope.site)).forEach((s) => bld.set(s.building, [...(bld.get(s.building) ?? []), s.percent]));
 
+
+  
   const digest = {
     projet: projectLine(project),
     periode: { du: isoDay(from), au: isoDay(to) },
