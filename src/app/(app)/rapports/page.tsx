@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { currentProject, requireUser } from "@/lib/session";
 import { aggregate } from "@/lib/domain/calc";
 import { PrintButton } from "@/components/print-button";
-import { PageTitle, btnLight, pct, td, th } from "@/components/ui";
+import { PageTitle, btnLight, pct, td, th , btn, card, input } from "@/components/ui";
 
 type Row = { lot: string; zoneId: string; qtyPlanned: number | null; qtyDone: number | null; manualProgress: number | null; weight: number; unit: string };
 const sum = (r: Row[], k: "qtyPlanned" | "qtyDone") => r.reduce((s, i) => s + (i[k] ?? 0), 0);
@@ -20,7 +20,8 @@ export default async function RapportsPage() {
   const lines = [...zones.map((z) => line(z.name, items.filter((i) => i.zoneId === z.id))), line("TOTAL", items)];
 
   return (
-    <div>
+    <>
+      <div>
       <div className="mb-3 flex items-center justify-between print:hidden">
         <PageTitle sub="Résumé d'avancement par zone et par lot">Rapports</PageTitle>
         <div className="flex gap-2"><a className={btnLight} href="/api/export/suivi?format=xlsx&kind=GRID">Export Excel</a><PrintButton /></div>
@@ -40,6 +41,16 @@ export default async function RapportsPage() {
         </tbody>
       </table>
       <p className="mt-2 text-xs text-slate-500">Avancement = {m === "SOMME" ? "total sur site / total sur plan" : "moyenne pondérée des lignes actives"}, plafonné à 100 %.</p>
-    </div>
+      </div>
+
+
+<form action="/api/export/rapports" className={`${card} flex flex-wrap items-end gap-2 print:hidden`}>
+  <label className="flex flex-col text-xs text-slate-600">Date (avancement)<input type="date" name="date" className={input} /></label>
+  <label className="flex flex-col text-xs text-slate-600">Semaine du (pointage)<input type="date" name="week" className={input} /></label>
+  <label className="flex flex-col text-xs text-slate-600">Chantier (pointage)<input name="site" className={input} /></label>
+  <label className="flex flex-col text-xs text-slate-600">Périmètre (autocontrôle)<input name="scope" className={input} /></label>
+  <button className={btn}>Télécharger le classeur courant faible (Excel)</button>
+</form>
+    </>
   );
 }

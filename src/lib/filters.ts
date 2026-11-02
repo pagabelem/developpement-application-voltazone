@@ -8,16 +8,11 @@ export function buildWhere(projectId: string, sp: Record<string, string | undefi
     ...(sp.zone ? { zoneId: sp.zone } : {}),
     ...(sp.level ? { levelId: sp.level } : {}),
     ...(sp.lot ? { lot: sp.lot as Lot } : {}),
+    ...(sp.open === "1" ? { status: { not: "TERMINE" as Status } } : {}), // tâches restantes
     ...(sp.status ? { status: sp.status as Status } : {}),
     ...(sp.late === "1" ? { plannedEnd: { lt: new Date() }, status: { not: "TERMINE" as Status } } : {}),
   };
 }
-
-
-
-
-
-
 
 export function auditWhere(f: Record<string, string | undefined>): Prisma.AuditLogWhereInput {
   return {

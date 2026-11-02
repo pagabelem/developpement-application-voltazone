@@ -8,20 +8,28 @@ const ITEMS = [
   { href: "/taches", label: "Tâches" },
   { href: "/zones", label: "Zones" },
   { href: "/planning", label: "Planning" },
+  { href: "/rapport-jour", label: "Rapports journaliers" },
+  { href: "/avancement", label: "Avancement par poste" },
+  { href: "/pointage", label: "Pointage", noClient: true },
+  { href: "/autocontrole", label: "Autocontrôle" },
+  { href: "/non-conformites", label: "Non-conformités" },
+  { href: "/materiel", label: "Matériel", noClient: true },
+  { href: "/historique", label: "Historique" },
   { href: "/equipes", label: "Équipes", mgr: true },
   { href: "/blocages", label: "Blocages" },
   { href: "/rapports", label: "Rapports" },
   { href: "/import", label: "Import", mgr: true },
   { href: "/parametres", label: "Paramètres", mgr: true },
   { href: "/audit", label: "Audit", admin: true },
-  { href: "/terrain", label: "Saisie terrain", field: true },
   { href: "/aide", label: "Aide" },
+    { href: "/assistant", label: "Assistant IA", noClient: true },
+  { href: "/terrain", label: "Saisie terrain", field: true },
 ];
 
 export function Nav({ role }: { role: string }) {
   const path = usePathname();
   const mgr = role === "ADMIN" || role === "CONDUCTEUR";
-  const items = ITEMS.filter((i) => (!i.mgr || mgr) && (!i.admin || role === "ADMIN") && (!i.field || role !== "CLIENT"));
+  const items = ITEMS.filter((i) => (!i.mgr || mgr) && (!i.admin || role === "ADMIN") && (!i.field || role !== "CLIENT") && (!i.noClient || role !== "CLIENT"));
   return (
     <nav className="flex gap-1 overflow-x-auto p-2 md:flex-col">
       {items.map((i) => (

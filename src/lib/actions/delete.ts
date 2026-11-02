@@ -6,6 +6,11 @@ import { isAdmin } from "@/lib/auth/permissions";
 import { auditWhere, buildWhere } from "@/lib/filters";
 import { computeStatus } from "@/lib/domain/calc";
 import { logAudit } from "@/lib/audit";
+import { parseDay } from "@/lib/domain/rapport";
+import type { Prisma } from "@prisma/client";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
+import { redirect } from "next/navigation";
 
 const refresh = () => revalidatePath("/", "layout");
 const id = (fd: FormData) => String(fd.get("id") ?? "");
@@ -133,5 +138,107 @@ export async function deleteAllAudit(fd: FormData) {
   need(fd, "SUPPRIMER TOUT");
   const r = await prisma.auditLog.deleteMany({});
   await logAudit(u.id, "AuditLog", "*", "PURGE_TOTALE", undefined, { supprimees: r.count });
+  refresh();
+}
+
+
+
+
+
+// --- Modules rapports de terrain (admin uniquement)
+export async function deleteDailyReport(fd: FormData) {
+  const u = await admin();
+  const r = await prisma.dailyReport.findUnique({ where: { id: id(fd) } });
+  if (!r) redirect("/rapport-jour");
+  await prisma.dailyReport.delete({ where: { id: r.id } });
+  await logAudit(u.id, "DailyReport", r.id, "DELETE", { date: r.date, site: r.site });
+  refresh();
+  redirect("/rapport-jour");
+}
+
+export async function deleteNc(fd: FormData) {
+  const u = await admin();
+  const n = await prisma.nonConformity.findUnique({ where: { id: id(fd) } });
+  if (!n) return;
+  await prisma.nonConformity.delete({ where: { id: n.id } });
+  await logAudit(u.id, "NonConformity", n.id, "DELETE", { number: n.number, description: n.description });
+  refresh();
+}
+
+export async function deleteMaterial(fd: FormData) {
+  const u = await admin();
+  const m = await prisma.materialRequest.findUnique({ where: { id: id(fd) } });
+  if (!m) redirect("/materiel");
+  await prisma.materialRequest.delete({ where: { id: m.id } });
+  await logAudit(u.id, "MaterialRequest", m.id, "DELETE", { number: m.number });
+  refresh();
+  redirect("/materiel"); // retour à la liste après suppression
+}
+
+export async function deletePeriod(fd: FormData) {
+  const u = await admin();
+  const p = await prisma.periodLog.findUnique({ where: { id: id(fd) } });
+  if (!p) return;
+  await prisma.periodLog.delete({ where: { id: p.id } });
+  await logAudit(u.id, "PeriodLog", p.id, "DELETE", { du: p.startDate, au: p.endDate, work: p.work });
+  refresh();
+}
+
+export async function deleteChecklistPoint(fd: FormData) {
+  const u = await admin();
+  const p = await prisma.checklistPoint.findUnique({ where: { id: id(fd) } });
+  if (!p) return;
+  await prisma.checklistPoint.delete({ where: { id: p.id } }); // résultats supprimés en cascade
+  await logAudit(u.id, "ChecklistPoint", p.id, "DELETE", { system: p.system, label: p.label });
+  refresh();
+}
+
+export async function deleteTimesheetWeek(fd: FormData) {
+  const u = await admin();
+  const p = await currentProject();
+  const week = parseDay(String(fd.get("week") ?? ""));
+  if (!week) return;
+  const site = String(fd.get("site") ?? "");
+  const r = await prisma.timesheetEntry.deleteMany({ where: { projectId: p.id, weekStart: week, site } });
+  await logAudit(u.id, "Timesheet", p.id, "DELETE_WEEK", undefined, { semaine: week, site, lignes: r.count });
+  refresh();
+}
+
+export async function deleteProgressSnapshot(fd: FormData) {
+  const u = await admin();
+  const p = await currentProject();
+  const date = parseDay(String(fd.get("date") ?? ""));
+  if (!date) return;
+  const r = await prisma.postProgress.deleteMany({ where: { projectId: p.id, date } });
+  await logAudit(u.id, "PostProgress", p.id, "DELETE_SNAPSHOT", undefined, { date, lignes: r.count });
+  refresh();
+}
+
+
+
+
+
+
+
+
+export async function deleteRef(fd: FormData) {
+  const u = await admin();
+  const r = await prisma.refItem.findUnique({ where: { id: id(fd) } });
+  if (!r) return;
+  const ops = [prisma.refItem.delete({ where: { id: r.id } })] as Prisma.PrismaPromise<unknown>[];
+  if (r.kind === "POST") ops.push(prisma.postProgress.deleteMany({ where: { projectId: r.projectId, post: r.key } }));
+  if (r.kind === "BUILDING") ops.push(prisma.postProgress.deleteMany({ where: { projectId: r.projectId, building: r.key } }));
+  await prisma.$transaction(ops);
+  await logAudit(u.id, "RefItem", r.id, "DELETE", { kind: r.kind, label: r.label });
+  refresh();
+}
+
+export async function deleteAttachment(fd: FormData) {
+  const u = await admin();
+  const a = await prisma.attachment.findUnique({ where: { id: id(fd) } });
+  if (!a) return;
+  await prisma.attachment.delete({ where: { id: a.id } });
+  await unlink(path.join(process.cwd(), "storage", a.id)).catch(() => {});
+  await logAudit(u.id, "Attachment", a.id, "DELETE", { filename: a.filename, entity: a.entity });
   refresh();
 }

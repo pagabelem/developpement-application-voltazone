@@ -43,9 +43,32 @@ export default async function TachesPage({ searchParams }: { searchParams: Promi
         <PageTitle sub={`${total} tâche(s) — équivalent de la feuille « Suivi des travaux »`}>Tâches</PageTitle>
         <div className="flex gap-2">
           {manager && <Link href="/taches?new=1" className={btn}>+ Nouvelle tâche</Link>}
+          <Link href="/taches?open=1" className={btnLight}>Tâches restantes (urgent)</Link>
+          
           <a href="/api/export/suivi?format=xlsx&kind=TASK" className={btnLight}>Excel</a>
         </div>
       </div>
+
+
+
+{(() => {
+  const done = items.filter((i) => i.status === "TERMINE").length;
+  const doing = items.filter((i) => i.status === "EN_COURS").length;
+  const todo = items.filter((i) => i.status === "A_FAIRE").length;
+  return (
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className={card}><div className="text-xs text-slate-500">Total tâches</div><div className="text-2xl font-bold">{total}</div></div>
+      <div className={card}><div className="text-xs text-slate-500">Terminées</div><div className="text-2xl font-bold text-green-700">{done}</div></div>
+      <div className={card}><div className="text-xs text-slate-500">En cours</div><div className="text-2xl font-bold text-blue-700">{doing}</div></div>
+      <div className={card}><div className="text-xs text-slate-500">À faire</div><div className="text-2xl font-bold">{todo}</div></div>
+      <div className={card}><div className="text-xs text-slate-500">Avancement (terminées / total)</div><div className="text-2xl font-bold">{total ? Math.round((done / total) * 100) : 0} %</div></div>
+    </div>
+  );
+})()}
+
+
+
+
 
       {showForm && (
         <form action={saveTask} className={`${card} grid gap-3 md:grid-cols-4`}>

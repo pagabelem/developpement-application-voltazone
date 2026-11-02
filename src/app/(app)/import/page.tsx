@@ -9,14 +9,18 @@ export default async function ImportPage() {
   if (!isManager(user)) redirect("/dashboard");
   return (
     <div className="max-w-2xl space-y-4">
-      <PageTitle sub="Importez d'abord le classeur A (zones, équipes, tâches), puis le classeur B (grille plan / site).">Import Excel</PageTitle>
+      <PageTitle sub="Ordre conseillé : A (zones, équipes, tâches), puis B (grille plan / site), puis C (rapport courant faible).">Import Excel</PageTitle>
       <section className={card}>
         <h2 className="mb-2 font-semibold">1. Classeur A — « Modèle Conducteur Travaux Stade CFO/CFA »</h2>
-<ImportForm endpoint="/api/import-a" template="/api/import/template?type=A" />
+        <ImportForm endpoint="/api/import-a" template="/api/import/template?type=A" />
       </section>
       <section className={card}>
         <h2 className="mb-2 font-semibold">2. Classeur B — « Suivi chantier zones »</h2>
         <ImportForm endpoint="/api/import" template="/api/import/template?type=B" />
+      </section>
+      <section className={card}>
+        <h2 className="mb-2 font-semibold">3. Classeur C — « Rapport chantier courant faible »</h2>
+        <ImportForm endpoint="/api/import-c" template="/api/import/template-c" />
       </section>
     </div>
   );

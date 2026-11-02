@@ -10,7 +10,21 @@ __v0_jsx-dev-runtime.ts
 # Environment variables
 .env*.local
 
+.env.supabase
+
 # Common ignores
 node_modules
 .next/
 .DS_Store
+.vercel
+.env*
+
+
+
+
+# Fichiers téléversés localement
+storage/
+
+# Sauvegardes locales de la base de données
+voltazone_backup.dump
+voltazone_data_only.sql

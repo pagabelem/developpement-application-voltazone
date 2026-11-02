@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_POSTGRES_PRISMA_URL")
+  directUrl = env("DATABASE_POSTGRES_URL_NON_POOLING")
 }
 
 enum Role {
@@ -70,6 +71,17 @@ model Project {
   teams       Team[]
   items       WorkItem[]
   snapshots   ProgressSnapshot[]
+  company          String?
+  overtimeAfter    Int                @default(44)
+  dailyReports     DailyReport[]
+  postProgress     PostProgress[]
+  timesheet        TimesheetEntry[]
+  checklistPoints  ChecklistPoint[]
+  nonConformities  NonConformity[]
+  materialRequests MaterialRequest[]
+  periodLogs       PeriodLog[]
+  refItems    RefItem[]
+  attachments Attachment[]
 }
 
 model Zone {
@@ -257,4 +269,221 @@ model ZoneHeadcount {
   present Int
 
   @@unique([zoneId, date])
+}
+
+
+
+
+
+
+
+enum NcStatus {
+  OUVERT
+  EN_COURS
+  LEVE
+}
+
+model DailyReport {
+  id            String              @id @default(cuid())
+  projectId     String
+  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date          DateTime
+  site          String
+  zoneLabel     String?
+  leaderName    String?
+  weather       String?
+  issuesText    String?
+  materialText  String?
+  safetyText    String?
+  tomorrowText  String?
+  leaderVisaBy  String?
+  leaderVisaAt  DateTime?
+  managerVisaBy String?
+  managerVisaAt DateTime?
+  createdById   String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  workers       DailyReportWorker[]
+  systems       DailyReportSystem[]
+
+  @@unique([projectId, date, site])
+}
+
+model DailyReportWorker {
+  id       String      @id @default(cuid())
+  reportId String
+  report   DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  name     String
+  role     String?
+  hours    Float?
+  note     String?
+}
+
+model DailyReportSystem {
+  id          String      @id @default(cuid())
+  reportId    String
+  report      DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  system      String
+  previousPct Float       @default(0) // 0 à 100
+  todayPct    Float       @default(0)
+  work        String?
+}
+
+model PostProgress {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date      DateTime
+  building  String   @default("") // "" = état global ; sinon matrice par bâtiment
+  post      String
+  system    String?
+  percent   Float // 0 à 100
+  note      String?
+
+  @@unique([projectId, date, building, post])
+  @@index([projectId, date])
+}
+
+model TimesheetEntry {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  weekStart DateTime // lundi
+  site      String   @default("")
+  name      String
+  role      String?
+  h1        Float?
+  h2        Float?
+  h3        Float?
+  h4        Float?
+  h5        Float?
+  h6        Float?
+  note      String?
+
+  @@index([projectId, weekStart])
+}
+
+model ChecklistPoint {
+  id        String            @id @default(cuid())
+  projectId String
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  system    String
+  label     String
+  order     Int               @default(0)
+  results   ChecklistResult[]
+}
+
+model ChecklistResult {
+  id        String         @id @default(cuid())
+  pointId   String
+  point     ChecklistPoint @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  scope     String         @default("") // "" = général, sinon bâtiment
+  result    String // CONFORME | NON_CONFORME
+  date      DateTime?
+  note      String?
+  byName    String?
+  updatedAt DateTime       @updatedAt
+
+  @@unique([pointId, scope])
+}
+
+model NonConformity {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  number      Int
+  date        DateTime
+  zoneLabel   String?
+  system      String?
+  description String
+  action      String?
+  responsible String?
+  status      NcStatus  @default(OUVERT)
+  source      String?
+  closedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([projectId, number])
+}
+
+model MaterialRequest {
+  id        String         @id @default(cuid())
+  projectId String
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  number    Int
+  date      DateTime
+  site      String?
+  status    String         @default("BROUILLON") // BROUILLON | ENVOYEE | RECUE
+  createdBy String?
+  createdAt DateTime       @default(now())
+  lines     MaterialLine[]
+
+  @@unique([projectId, number])
+}
+
+model MaterialLine {
+  id          String          @id @default(cuid())
+  requestId   String
+  request     MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  position    Int             @default(0)
+  designation String
+  reference   String?
+  unit        String?
+  quantity    Float?
+  wantedDate  DateTime?
+  system      String?
+  note        String?
+}
+
+model PeriodLog {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  startDate DateTime
+  endDate   DateTime
+  workType  String
+  zoneLabel String?
+  system    String?
+  work      String
+  percent   Float?
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([projectId, startDate])
+}
+
+
+
+
+
+// Listes modifiables : bâtiments, postes d'avancement, systèmes du rapport, types de travaux
+model RefItem {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind      String // BUILDING | POST | REPORT_SYSTEM | WORK_TYPE
+  key       String
+  label     String
+  short     String?
+  system    String?
+  order     Int     @default(0)
+
+  @@unique([projectId, kind, key])
+}
+
+// Photos et PDF joints (stockés dans le dossier /storage)
+model Attachment {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  entity     String // NC | DAILY_REPORT
+  entityId   String
+  filename   String
+  mime       String
+  size       Int
+  uploadedBy String?
+  createdAt  DateTime @default(now())
+
+  @@index([entity, entityId])
 }

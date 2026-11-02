@@ -21,3 +21,10 @@ export const canEdit = (s: EditScope, i: { lot: Lot; zoneId: string }) => s.all 
 export async function canEditItem(u: SessionUser, i: { lot: Lot; zoneId: string }) {
   return canEdit(await getEditScope(u), i);
 }
+
+
+
+
+// Rôles qui peuvent saisir les rapports de terrain (responsables et chefs d'équipe)
+export const canWrite = (u: SessionUser) => isManager(u) || u.role === "CHEF_CFO" || u.role === "CHEF_CFA";
+export const isClient = (u: SessionUser) => u.role === "CLIENT";

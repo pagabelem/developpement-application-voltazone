@@ -7,6 +7,11 @@ import { addLevel, addSystem, createUser, generateGrid, setAggregation, toggleUs
 import { deleteLevel, deleteSystem, deleteUser } from "@/lib/actions/delete";
 import { DeleteDialog } from "@/components/delete-dialog";
 import { LotBadge, PageTitle, btn, btnLight, card, input } from "@/components/ui";
+import { saveProject } from "@/lib/actions/rapports";
+
+import { getRef, type RefKind } from "@/lib/reference";
+import { addRef } from "@/lib/actions/rapports";
+import { deleteRef } from "@/lib/actions/delete";
 
 const L = ({ label, children }: { label: string; children: React.ReactNode }) => <label className="flex flex-col gap-1 text-xs text-slate-600">{label}{children}</label>;
 
@@ -26,6 +31,28 @@ export default async function ParametresPage({ searchParams }: { searchParams: P
   return (
     <div className="max-w-3xl space-y-4">
       <PageTitle>Paramètres</PageTitle>
+
+
+
+<section className={card}>
+  <h2 className="mb-2 font-semibold">Identité du chantier</h2>
+  <form action={saveProject} className="grid gap-3 md:grid-cols-2">
+    <L label="Nom du projet"><input name="name" required defaultValue={project.name} className={input} /></L>
+    <L label="Client"><input name="client" defaultValue={project.client ?? ""} placeholder="Ex. ADM" className={input} /></L>
+    <L label="Société"><input name="company" defaultValue={project.company ?? ""} placeholder="Ex. TGEM" className={input} /></L>
+    <L label="Heures sup. au-delà de (h / semaine)"><input name="overtimeAfter" type="number" min={1} max={100} required defaultValue={project.overtimeAfter} className={input} /></L>
+    <div><button className={btn}>Enregistrer</button></div>
+  </form>
+
+
+<RefSection projectId={project.id} admin={admin} kind="BUILDING" title="Bâtiments / chantiers" hint="Utilisés dans les rapports journaliers, le pointage, l'autocontrôle, le matériel et la matrice d'avancement." />
+<RefSection projectId={project.id} admin={admin} kind="POST" withSystem title="Postes d'avancement" hint="Lignes de « Avancement par poste » (chemin de câble, RJ45, SSI…)." />
+<RefSection projectId={project.id} admin={admin} kind="REPORT_SYSTEM" title="Systèmes du rapport journalier" hint="Proposés quand le premier rapport d'un chantier est créé." />
+<RefSection projectId={project.id} admin={admin} kind="WORK_TYPE" title="Types de travaux (historique)" hint="Liste déroulante de la page Historique." />
+
+
+</section>
+
 
       <section className={card}>
         <h2 className="mb-2 font-semibold">Méthode d'avancement (RG-05)</h2>
@@ -112,5 +139,34 @@ export default async function ParametresPage({ searchParams }: { searchParams: P
         </section>
       )}
     </div>
+  );
+}
+
+
+
+
+
+
+async function RefSection({ projectId, kind, title, hint, withSystem, admin }: { projectId: string; kind: RefKind; title: string; hint: string; withSystem?: boolean; admin: boolean }) {
+  const items = await getRef(projectId, kind);
+  return (
+    <section className={card}>
+      <h2 className="mb-1 font-semibold">{title}</h2>
+      <p className="mb-2 text-xs text-slate-500">{hint}</p>
+      <ul className="mb-3 flex flex-wrap gap-2 text-sm">
+        {items.map((i) => (
+          <li key={i.id} className="flex items-center gap-2 rounded border px-2 py-1">
+            {i.label}{withSystem && i.system ? <span className="text-xs text-slate-400">({i.system})</span> : null}
+            {admin && <DeleteDialog action={deleteRef} fields={{ id: i.id }} label="Suppr." title={`Supprimer « ${i.label} » ?`} message="Pour un poste ou un bâtiment, ses pourcentages d'avancement enregistrés sont aussi supprimés. Les anciens rapports gardent leur texte." />}
+          </li>
+        ))}
+      </ul>
+      <form action={addRef} className="flex flex-wrap items-end gap-2">
+        <input type="hidden" name="kind" value={kind} />
+        <L label="Nom"><input name="label" required className={input} /></L>
+        {withSystem && <L label="Système associé"><input name="system" placeholder="Ex. Sonorisation" className={input} /></L>}
+        <button className={btnLight}>Ajouter</button>
+      </form>
+    </section>
   );
 }

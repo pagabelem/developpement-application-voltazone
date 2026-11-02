@@ -3,12 +3,13 @@ import { prisma } from "@/lib/db";
 import { currentProject, requireUser } from "@/lib/session";
 import { aggregate, isLate, STATUS_LABEL } from "@/lib/domain/calc";
 import { Bar, PageTitle, card, pct } from "@/components/ui";
+import { mondayOf } from "@/lib/domain/rapport";
 
 const BASES = [{ k: "tout", label: "Tout" }, { k: "grille", label: "Grille plan/site" }, { k: "taches", label: "Tâches" }];
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
-  await requireUser();
+  const user = await requireUser();
   const project = await currentProject();
   const base = sp.base === "grille" || sp.base === "taches" ? sp.base : "tout";
   const kind = base === "grille" ? { kind: "GRID" } : base === "taches" ? { kind: "TASK" } : {};
@@ -20,6 +21,15 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const m = project.aggregation;
   const count = (s: string) => items.filter((i) => i.status === s).length;
   const late = items.filter((i) => isLate(i.plannedEnd, i.status)).length;
+
+
+  const isClientUser = user.role === "CLIENT";
+const [ncOpen, lastReport, weekEntries] = await Promise.all([
+  prisma.nonConformity.count({ where: { projectId: project.id, status: { not: "LEVE" } } }),
+  prisma.dailyReport.findFirst({ where: { projectId: project.id }, orderBy: { date: "desc" }, include: { workers: true } }),
+  isClientUser ? [] : prisma.timesheetEntry.findMany({ where: { projectId: project.id, weekStart: mondayOf(new Date()) } }),
+]);
+const weekHours = weekEntries.reduce((s, e) => s + [e.h1, e.h2, e.h3, e.h4, e.h5, e.h6].reduce((a, h) => a + (h ?? 0), 0), 0);
 
   return (
     <div className="space-y-6">
@@ -43,6 +53,18 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <Link key={s} href={`/suivi?status=${s}`} className={card}><div className="text-xs text-slate-500">{STATUS_LABEL[s]}</div><div className="text-2xl font-bold">{count(s)}</div></Link>
         ))}
       </div>
+
+
+
+
+<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+  <Link href="/non-conformites?status=OUVERT" className={card}><div className="text-xs text-slate-500">Réserves ouvertes</div><div className="text-2xl font-bold text-red-700">{ncOpen}</div></Link>
+  <Link href={lastReport ? `/rapport-jour?id=${lastReport.id}` : "/rapport-jour"} className={card}><div className="text-xs text-slate-500">Dernier rapport</div><div className="text-sm font-semibold">{lastReport ? `${lastReport.site} — ${lastReport.date.toLocaleDateString("fr-FR", { timeZone: "UTC" })}` : "Aucun"}</div></Link>
+  <div className={card}><div className="text-xs text-slate-500">Effectif au dernier rapport</div><div className="text-2xl font-bold">{lastReport?.workers.length ?? "—"}</div></div>
+  {!isClientUser && <div className={card}><div className="text-xs text-slate-500">Heures pointées cette semaine</div><div className="text-2xl font-bold">{weekHours}</div></div>}
+</div>
+
+
 
       <section className={card}>
         <h2 className="mb-3 font-semibold">Avancement par zone</h2>

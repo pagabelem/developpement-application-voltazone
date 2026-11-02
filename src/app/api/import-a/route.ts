@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { currentProject } from "@/lib/session";
 import { computeStatus } from "@/lib/domain/calc";
 import { logAudit } from "@/lib/audit";
+import { excelDate } from "@/lib/domain/rapport";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -30,17 +31,7 @@ function num(v: any): number | null | "ERR" {
   const n = typeof x === "number" ? x : Number(String(x).replace(",", "."));
   return Number.isNaN(n) || n < 0 ? "ERR" : n;
 }
-function date(v: any): Date | null | "ERR" {
-  const x = raw(v);
-  if (x == null || x === "") return null;
-  if (x instanceof Date) return new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()));
-  const s = String(x).trim();
-  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (m) return new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
-  m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
-  return "ERR";
-}
+const date = (v: any): Date | null | "ERR" => excelDate(raw(v));
 const nn = (v: any) => v as number | null;
 const dd = (v: any) => v as Date | null;
 
