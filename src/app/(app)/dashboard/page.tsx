@@ -29,7 +29,15 @@ const [ncOpen, lastReport, weekEntries] = await Promise.all([
   prisma.dailyReport.findFirst({ where: { projectId: project.id }, orderBy: { date: "desc" }, include: { workers: true } }),
   isClientUser ? [] : prisma.timesheetEntry.findMany({ where: { projectId: project.id, weekStart: mondayOf(new Date()) } }),
 ]);
-const weekHours = weekEntries.reduce((s, e) => s + [e.h1, e.h2, e.h3, e.h4, e.h5, e.h6].reduce((a, h) => a + (h ?? 0), 0), 0);
+
+const weekHours = weekEntries.reduce<number>((total, e) => {
+  const hours = [e.h1, e.h2, e.h3, e.h4, e.h5, e.h6];
+
+  return total + hours.reduce<number>(
+    (sum, h) => sum + (h ?? 0),
+    0
+  );
+}, 0);
 
   return (
     <div className="space-y-6">

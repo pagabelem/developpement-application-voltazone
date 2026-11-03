@@ -477,12 +477,13 @@ model Attachment {
   id         String   @id @default(cuid())
   projectId  String
   project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  entity     String // NC | DAILY_REPORT
+  entity     String
   entityId   String
   filename   String
   mime       String
   size       Int
   uploadedBy String?
+  storagePath String?
   createdAt  DateTime @default(now())
 
   @@index([entity, entityId])
