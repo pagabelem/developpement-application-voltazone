@@ -34,7 +34,8 @@ async function main() {
   await mk("Conducteur de travaux", "conducteur@voltazone.local", "CONDUCTEUR");
   const chefCfo = await mk("Chef équipe CFO", "chef.cfo@voltazone.local", "CHEF_CFO", "CFO");
   const chefCfa = await mk("Chef équipe CFA", "chef.cfa@voltazone.local", "CHEF_CFA", "CFA");
-  await mk("Client MOA", "client@voltazone.local", "CLIENT");
+   const client = await mk("Client MOA", "client@voltazone.local", "CLIENT");
+  await (prisma as any).projectMember.createMany({ data: [chefCfo, chefCfa, client].map((x) => ({ projectId, userId: x.id })) });
 
   const zones = await prisma.zone.findMany({ where: { projectId } });
   // Équipes d'exemple du classeur A (feuille Équipes)

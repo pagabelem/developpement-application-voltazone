@@ -1,0 +1,21 @@
+ce projet fonctionne pas avec posgres local , mais avec ubuntu , avec un port de 5433 , alors avant de pouvoir même 
+lancer localement il faut acceder au  logiciel ubuntu qui va ouvrir son terminal et par là on pourra executer ces commande pour mettre le port en ligne
+
+
+dans Ubuntu (WSL), exécute :
+sudo pg_lsclusters
+
+il va demander mon mot de passe(celui de l'ordinateur)  : je met BASILO.pag74673278
+
+Puis :
+sudo ss -ltnp | grep 5433
+
+
+
+
+
+
+
+Vérifions PostgreSQL Ubuntu
+Dans ton terminal Windows (PowerShell), exécute :
+netstat -ano | findstr :5433

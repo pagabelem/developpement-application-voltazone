@@ -1,0 +1,160 @@
+;
+; Archive created at 2026-11-02 16:52:51
+;     dbname: voltazone
+;     TOC Entries: 149
+;     Compression: gzip
+;     Dump Version: 1.16-0
+;     Format: CUSTOM
+;     Integer: 4 bytes
+;     Offset: 8 bytes
+;     Dumped from database version: 18.3
+;     Dumped by pg_dump version: 18.3
+;
+;
+; Selected TOC Entries:
+;
+5; 2615 337637 SCHEMA - public postgres
+5309; 0 0 COMMENT - SCHEMA public postgres
+5310; 0 0 ACL - SCHEMA public postgres
+890; 1247 337686 TYPE public IssueStatus postgres
+884; 1247 337664 TYPE public Lot postgres
+932; 1247 339900 TYPE public NcStatus postgres
+881; 1247 337653 TYPE public Role postgres
+887; 1247 337670 TYPE public Status postgres
+245; 1259 342450 TABLE public Attachment postgres
+229; 1259 337839 TABLE public AuditLog postgres
+238; 1259 339974 TABLE public ChecklistPoint postgres
+239; 1259 339987 TABLE public ChecklistResult postgres
+233; 1259 339909 TABLE public DailyReport postgres
+235; 1259 339933 TABLE public DailyReportSystem postgres
+234; 1259 339923 TABLE public DailyReportWorker postgres
+228; 1259 337824 TABLE public Issue postgres
+223; 1259 337742 TABLE public Level postgres
+242; 1259 340032 TABLE public MaterialLine postgres
+241; 1259 340017 TABLE public MaterialRequest postgres
+240; 1259 340000 TABLE public NonConformity postgres
+243; 1259 340044 TABLE public PeriodLog postgres
+236; 1259 339947 TABLE public PostProgress postgres
+227; 1259 337811 TABLE public ProgressEntry postgres
+230; 1259 337852 TABLE public ProgressSnapshot postgres
+221; 1259 337708 TABLE public Project postgres
+244; 1259 342436 TABLE public RefItem postgres
+224; 1259 337757 TABLE public System postgres
+225; 1259 337775 TABLE public Team postgres
+237; 1259 339961 TABLE public TimesheetEntry postgres
+220; 1259 337691 TABLE public User postgres
+226; 1259 337791 TABLE public WorkItem postgres
+222; 1259 337726 TABLE public Zone postgres
+232; 1259 337988 TABLE public ZoneHeadcount postgres
+231; 1259 337866 TABLE public _TeamToZone postgres
+219; 1259 337638 TABLE public _prisma_migrations postgres
+5302; 0 342450 TABLE DATA public Attachment postgres
+5286; 0 337839 TABLE DATA public AuditLog postgres
+5295; 0 339974 TABLE DATA public ChecklistPoint postgres
+5296; 0 339987 TABLE DATA public ChecklistResult postgres
+5290; 0 339909 TABLE DATA public DailyReport postgres
+5292; 0 339933 TABLE DATA public DailyReportSystem postgres
+5291; 0 339923 TABLE DATA public DailyReportWorker postgres
+5285; 0 337824 TABLE DATA public Issue postgres
+5280; 0 337742 TABLE DATA public Level postgres
+5299; 0 340032 TABLE DATA public MaterialLine postgres
+5298; 0 340017 TABLE DATA public MaterialRequest postgres
+5297; 0 340000 TABLE DATA public NonConformity postgres
+5300; 0 340044 TABLE DATA public PeriodLog postgres
+5293; 0 339947 TABLE DATA public PostProgress postgres
+5284; 0 337811 TABLE DATA public ProgressEntry postgres
+5287; 0 337852 TABLE DATA public ProgressSnapshot postgres
+5278; 0 337708 TABLE DATA public Project postgres
+5301; 0 342436 TABLE DATA public RefItem postgres
+5281; 0 337757 TABLE DATA public System postgres
+5282; 0 337775 TABLE DATA public Team postgres
+5294; 0 339961 TABLE DATA public TimesheetEntry postgres
+5277; 0 337691 TABLE DATA public User postgres
+5283; 0 337791 TABLE DATA public WorkItem postgres
+5279; 0 337726 TABLE DATA public Zone postgres
+5289; 0 337988 TABLE DATA public ZoneHeadcount postgres
+5288; 0 337866 TABLE DATA public _TeamToZone postgres
+; 5276; 0 337638 TABLE DATA public _prisma_migrations postgres
+5095; 2606 342465 CONSTRAINT public Attachment Attachment_pkey postgres
+5050; 2606 337851 CONSTRAINT public AuditLog AuditLog_pkey postgres
+5075; 2606 339986 CONSTRAINT public ChecklistPoint ChecklistPoint_pkey postgres
+5077; 2606 339999 CONSTRAINT public ChecklistResult ChecklistResult_pkey postgres
+5066; 2606 339946 CONSTRAINT public DailyReportSystem DailyReportSystem_pkey postgres
+5064; 2606 339932 CONSTRAINT public DailyReportWorker DailyReportWorker_pkey postgres
+5061; 2606 339922 CONSTRAINT public DailyReport DailyReport_pkey postgres
+5047; 2606 337838 CONSTRAINT public Issue Issue_pkey postgres
+5030; 2606 337756 CONSTRAINT public Level Level_pkey postgres
+5086; 2606 340043 CONSTRAINT public MaterialLine MaterialLine_pkey postgres
+5083; 2606 340031 CONSTRAINT public MaterialRequest MaterialRequest_pkey postgres
+5080; 2606 340016 CONSTRAINT public NonConformity NonConformity_pkey postgres
+5088; 2606 340058 CONSTRAINT public PeriodLog PeriodLog_pkey postgres
+5068; 2606 339960 CONSTRAINT public PostProgress PostProgress_pkey postgres
+5045; 2606 337823 CONSTRAINT public ProgressEntry ProgressEntry_pkey postgres
+5052; 2606 337865 CONSTRAINT public ProgressSnapshot ProgressSnapshot_pkey postgres
+5025; 2606 337725 CONSTRAINT public Project Project_pkey postgres
+5091; 2606 342449 CONSTRAINT public RefItem RefItem_pkey postgres
+5033; 2606 337774 CONSTRAINT public System System_pkey postgres
+5036; 2606 337790 CONSTRAINT public Team Team_pkey postgres
+5072; 2606 339973 CONSTRAINT public TimesheetEntry TimesheetEntry_pkey postgres
+5023; 2606 337707 CONSTRAINT public User User_pkey postgres
+5039; 2606 337810 CONSTRAINT public WorkItem WorkItem_pkey postgres
+5058; 2606 337998 CONSTRAINT public ZoneHeadcount ZoneHeadcount_pkey postgres
+5027; 2606 337741 CONSTRAINT public Zone Zone_pkey postgres
+5055; 2606 337874 CONSTRAINT public _TeamToZone _TeamToZone_AB_pkey postgres
+5020; 2606 337651 CONSTRAINT public _prisma_migrations _prisma_migrations_pkey postgres
+5093; 1259 342467 INDEX public Attachment_entity_entityId_idx postgres
+5048; 1259 337884 INDEX public AuditLog_createdAt_idx postgres
+5078; 1259 340063 INDEX public ChecklistResult_pointId_scope_key postgres
+5062; 1259 340059 INDEX public DailyReport_projectId_date_site_key postgres
+5031; 1259 337877 INDEX public Level_projectId_label_key postgres
+5084; 1259 340065 INDEX public MaterialRequest_projectId_number_key postgres
+5081; 1259 340064 INDEX public NonConformity_projectId_number_key postgres
+5089; 1259 340066 INDEX public PeriodLog_projectId_startDate_idx postgres
+5069; 1259 340061 INDEX public PostProgress_projectId_date_building_post_key postgres
+5070; 1259 340060 INDEX public PostProgress_projectId_date_idx postgres
+5053; 1259 337885 INDEX public ProgressSnapshot_projectId_date_scope_scopeId_key postgres
+5092; 1259 342466 INDEX public RefItem_projectId_kind_key_key postgres
+5034; 1259 337878 INDEX public System_projectId_lot_name_key postgres
+5073; 1259 340062 INDEX public TimesheetEntry_projectId_weekStart_idx postgres
+5021; 1259 337875 INDEX public User_email_key postgres
+5037; 1259 337880 INDEX public WorkItem_lot_idx postgres
+5040; 1259 337882 INDEX public WorkItem_plannedEnd_idx postgres
+5041; 1259 337883 INDEX public WorkItem_projectId_zoneId_levelId_systemId_key postgres
+5042; 1259 337879 INDEX public WorkItem_status_idx postgres
+5043; 1259 337881 INDEX public WorkItem_zoneId_idx postgres
+5059; 1259 337999 INDEX public ZoneHeadcount_zoneId_date_key postgres
+5028; 1259 337876 INDEX public Zone_projectId_code_key postgres
+5056; 1259 337886 INDEX public _TeamToZone_B_index postgres
+5128; 2606 342473 FK CONSTRAINT public Attachment Attachment_projectId_fkey postgres
+5111; 2606 337962 FK CONSTRAINT public AuditLog AuditLog_userId_fkey postgres
+5121; 2606 340092 FK CONSTRAINT public ChecklistPoint ChecklistPoint_projectId_fkey postgres
+5122; 2606 340097 FK CONSTRAINT public ChecklistResult ChecklistResult_pointId_fkey postgres
+5118; 2606 340077 FK CONSTRAINT public DailyReportSystem DailyReportSystem_reportId_fkey postgres
+5117; 2606 340072 FK CONSTRAINT public DailyReportWorker DailyReportWorker_reportId_fkey postgres
+5116; 2606 340067 FK CONSTRAINT public DailyReport DailyReport_projectId_fkey postgres
+5109; 2606 337957 FK CONSTRAINT public Issue Issue_openedById_fkey postgres
+5110; 2606 337952 FK CONSTRAINT public Issue Issue_workItemId_fkey postgres
+5097; 2606 337892 FK CONSTRAINT public Level Level_projectId_fkey postgres
+5125; 2606 340112 FK CONSTRAINT public MaterialLine MaterialLine_requestId_fkey postgres
+5124; 2606 340107 FK CONSTRAINT public MaterialRequest MaterialRequest_projectId_fkey postgres
+5123; 2606 340102 FK CONSTRAINT public NonConformity NonConformity_projectId_fkey postgres
+5126; 2606 340117 FK CONSTRAINT public PeriodLog PeriodLog_projectId_fkey postgres
+5119; 2606 340082 FK CONSTRAINT public PostProgress PostProgress_projectId_fkey postgres
+5107; 2606 337947 FK CONSTRAINT public ProgressEntry ProgressEntry_authorId_fkey postgres
+5108; 2606 337942 FK CONSTRAINT public ProgressEntry ProgressEntry_workItemId_fkey postgres
+5112; 2606 337967 FK CONSTRAINT public ProgressSnapshot ProgressSnapshot_projectId_fkey postgres
+5127; 2606 342468 FK CONSTRAINT public RefItem RefItem_projectId_fkey postgres
+5098; 2606 337897 FK CONSTRAINT public System System_projectId_fkey postgres
+5099; 2606 337907 FK CONSTRAINT public Team Team_leaderId_fkey postgres
+5100; 2606 337902 FK CONSTRAINT public Team Team_projectId_fkey postgres
+5120; 2606 340087 FK CONSTRAINT public TimesheetEntry TimesheetEntry_projectId_fkey postgres
+5101; 2606 337937 FK CONSTRAINT public WorkItem WorkItem_lastUpdatedById_fkey postgres
+5102; 2606 337922 FK CONSTRAINT public WorkItem WorkItem_levelId_fkey postgres
+5103; 2606 337912 FK CONSTRAINT public WorkItem WorkItem_projectId_fkey postgres
+5104; 2606 337927 FK CONSTRAINT public WorkItem WorkItem_systemId_fkey postgres
+5105; 2606 337932 FK CONSTRAINT public WorkItem WorkItem_teamId_fkey postgres
+5106; 2606 337917 FK CONSTRAINT public WorkItem WorkItem_zoneId_fkey postgres
+5115; 2606 338000 FK CONSTRAINT public ZoneHeadcount ZoneHeadcount_zoneId_fkey postgres
+5096; 2606 337887 FK CONSTRAINT public Zone Zone_projectId_fkey postgres
+5113; 2606 337972 FK CONSTRAINT public _TeamToZone _TeamToZone_A_fkey postgres
+5114; 2606 337977 FK CONSTRAINT public _TeamToZone _TeamToZone_B_fkey postgres
