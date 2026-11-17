@@ -37,41 +37,41 @@ enum IssueStatus {
 }
 
 model User {
-  id               String          @id @default(cuid())
-  name             String
-  email            String          @unique
-  passwordHash     String
-  role             Role
-  lot              Lot?
-  active           Boolean         @default(true)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  teamsLed         Team[]
-  audits           AuditLog[]
-  itemsUpdated     WorkItem[]
-  progressEntries  ProgressEntry[]
-  issuesOpened     Issue[]
-  projects         ProjectMember[]
+  id              String          @id @default(cuid())
+  name            String
+  email           String          @unique
+  passwordHash    String
+  role            Role
+  lot             Lot?
+  active          Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  teamsLed        Team[]
+  audits          AuditLog[]
+  itemsUpdated    WorkItem[]
+  progressEntries ProgressEntry[]
+  issuesOpened    Issue[]
+  projects        ProjectMember[]
 }
 
 model Project {
-  id          String             @id @default(cuid())
-  name        String
-  client      String?
-  siteName    String?
-  startDate   DateTime?
-  endDate     DateTime?
-  status      String             @default("EN_COURS")
-  timezone    String             @default("UTC")
-  aggregation String             @default("MOYENNE") // MOYENNE | SOMME (RG-05)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  zones       Zone[]
-  levels      Level[]
-  systems     System[]
-  teams       Team[]
-  items       WorkItem[]
-  snapshots   ProgressSnapshot[]
+  id               String             @id @default(cuid())
+  name             String
+  client           String?
+  siteName         String?
+  startDate        DateTime?
+  endDate          DateTime?
+  status           String             @default("EN_COURS")
+  timezone         String             @default("UTC")
+  aggregation      String             @default("MOYENNE") // MOYENNE | SOMME (RG-05)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  zones            Zone[]
+  levels           Level[]
+  systems          System[]
+  teams            Team[]
+  items            WorkItem[]
+  snapshots        ProgressSnapshot[]
   company          String?
   overtimeAfter    Int                @default(44)
   dailyReports     DailyReport[]
@@ -81,29 +81,29 @@ model Project {
   nonConformities  NonConformity[]
   materialRequests MaterialRequest[]
   periodLogs       PeriodLog[]
-  refItems    RefItem[]
-  attachments Attachment[]
-  members     ProjectMember[]
+  refItems         RefItem[]
+  attachments      Attachment[]
+  members          ProjectMember[]
 }
 
 model Zone {
-  id        String     @id @default(cuid())
-  projectId String
-  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  code      String
-  name      String
+  id               String          @id @default(cuid())
+  projectId        String
+  project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  code             String
+  name             String
   mainLot          String          @default("CFO/CFA")
   leaderName       String?
   plannedHeadcount Int?
   note             String?
   headcounts       ZoneHeadcount[]
-  building  String?
-  order     Int        @default(0)
-  deletedAt DateTime?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  items     WorkItem[]
-  teams     Team[]
+  building         String?
+  order            Int             @default(0)
+  deletedAt        DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  items            WorkItem[]
+  teams            Team[]
 
   @@unique([projectId, code])
 }
@@ -127,7 +127,7 @@ model System {
   project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   lot         Lot
   name        String
-  gridEnabled Boolean @default(true)
+  gridEnabled Boolean    @default(true)
   defaultUnit String     @default("u")
   order       Int        @default(0)
   createdAt   DateTime   @default(now())
@@ -159,45 +159,45 @@ model Team {
 }
 
 model WorkItem {
-  id                String          @id @default(cuid())
-  projectId         String
-  project           Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  code              String?
-  zoneId            String
-  zone              Zone            @relation(fields: [zoneId], references: [id])
-  levelId           String?
-  level             Level?          @relation(fields: [levelId], references: [id])
-  lot               Lot
-  systemId          String?
-  system            System?         @relation(fields: [systemId], references: [id])
-  title             String?
-  location          String?
-  teamId            String?
-  team              Team?           @relation(fields: [teamId], references: [id])
-  plannedHeadcount  Int?
-  plannedStart      DateTime?
-  plannedEnd        DateTime?
-  actualStart       DateTime?
-  actualEnd         DateTime?
-  status            Status          @default(NON_RENSEIGNE)
-  manualProgress    Float?
-  unit              String          @default("u")
-  qtyPlanned        Float?
-  qtyDone           Float?
-  weight            Float           @default(1)
-  material          String?
-  note              String?
-  lastUpdatedAt     DateTime?
-  lastUpdatedById   String?
-  lastUpdatedBy     User?           @relation(fields: [lastUpdatedById], references: [id])
-  deletedAt         DateTime?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  entries           ProgressEntry[]
-  issues            Issue[]
-  kind        String  @default("GRID") // GRID = classeur B, TASK = classeur A
-  responsible String?
-  crew        String?
+  id               String          @id @default(cuid())
+  projectId        String
+  project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  code             String?
+  zoneId           String
+  zone             Zone            @relation(fields: [zoneId], references: [id])
+  levelId          String?
+  level            Level?          @relation(fields: [levelId], references: [id])
+  lot              Lot
+  systemId         String?
+  system           System?         @relation(fields: [systemId], references: [id])
+  title            String?
+  location         String?
+  teamId           String?
+  team             Team?           @relation(fields: [teamId], references: [id])
+  plannedHeadcount Int?
+  plannedStart     DateTime?
+  plannedEnd       DateTime?
+  actualStart      DateTime?
+  actualEnd        DateTime?
+  status           Status          @default(NON_RENSEIGNE)
+  manualProgress   Float?
+  unit             String          @default("u")
+  qtyPlanned       Float?
+  qtyDone          Float?
+  weight           Float           @default(1)
+  material         String?
+  note             String?
+  lastUpdatedAt    DateTime?
+  lastUpdatedById  String?
+  lastUpdatedBy    User?           @relation(fields: [lastUpdatedById], references: [id])
+  deletedAt        DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  entries          ProgressEntry[]
+  issues           Issue[]
+  kind             String          @default("GRID") // GRID = classeur B, TASK = classeur A
+  responsible      String?
+  crew             String?
 
   @@unique([projectId, zoneId, levelId, systemId])
   @@index([status])
@@ -256,12 +256,6 @@ model ProgressSnapshot {
   @@unique([projectId, date, scope, scopeId])
 }
 
-
-
-
-
-
-
 model ZoneHeadcount {
   id      String   @id @default(cuid())
   zoneId  String
@@ -272,12 +266,6 @@ model ZoneHeadcount {
 
   @@unique([zoneId, date])
 }
-
-
-
-
-
-
 
 enum NcStatus {
   OUVERT
@@ -455,10 +443,6 @@ model PeriodLog {
   @@index([projectId, startDate])
 }
 
-
-
-
-
 // Listes modifiables : bâtiments, postes d'avancement, systèmes du rapport, types de travaux
 model RefItem {
   id        String  @id @default(cuid())
@@ -476,30 +460,29 @@ model RefItem {
 
 // Photos et PDF joints (stockés dans le dossier /storage)
 model Attachment {
-  id         String   @id @default(cuid())
-  projectId  String
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  entity     String
-  entityId   String
-  filename   String
-  mime       String
-  size       Int
-  uploadedBy String?
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  entity      String
+  entityId    String
+  filename    String
+  mime        String
+  size        Int
+  uploadedBy  String?
   storagePath String?
-  createdAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
 
   @@index([entity, entityId])
 }
 
-
-
 model ProjectMember {
   id        String   @id @default(cuid())
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
   @@index([userId])

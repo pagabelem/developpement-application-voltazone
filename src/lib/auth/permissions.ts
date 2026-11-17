@@ -10,11 +10,39 @@ const chefLot = (u: SessionUser): Lot | null => (u.role === "CHEF_CFO" ? "CFO" :
 
 // RG-11 : un chef d'équipe ne modifie que son lot et les zones de ses équipes
 export async function getEditScope(u: SessionUser): Promise<EditScope> {
-  if (isManager(u)) return { all: true, lot: null, zones: new Set() };
+  if (isManager(u)) {
+    return { all: true, lot: null, zones: new Set() };
+  }
+
   const lot = chefLot(u);
-  if (!lot) return { all: false, lot: null, zones: new Set() };
-  const teams = await prisma.team.findMany({ where: { leaderId: u.id, deletedAt: null, lot }, select: { zones: { select: { id: true } } } });
-  return { all: false, lot, zones: new Set(teams.flatMap((t) => t.zones.map((z) => z.id))) };
+
+  if (!lot) {
+    return { all: false, lot: null, zones: new Set() };
+  }
+
+  const teams = await prisma.team.findMany({
+    where: {
+      leaderId: u.id,
+      deletedAt: null,
+      lot,
+      project: {
+        members: {
+          some: { userId: u.id },
+        },
+      },
+    },
+    select: {
+      zones: {
+        select: { id: true },
+      },
+    },
+  });
+
+  return {
+    all: false,
+    lot,
+    zones: new Set(teams.flatMap((t) => t.zones.map((z) => z.id))),
+  };
 }
 
 export const canEdit = (s: EditScope, i: { lot: Lot; zoneId: string }) => s.all || (s.lot === i.lot && s.zones.has(i.zoneId));

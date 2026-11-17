@@ -1,4 +1,5 @@
--- CreateTable
+-- Création de la table ProjectMember
+
 CREATE TABLE "ProjectMember" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
@@ -8,21 +9,43 @@ CREATE TABLE "ProjectMember" (
     CONSTRAINT "ProjectMember_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE INDEX "ProjectMember_userId_idx" ON "ProjectMember"("userId");
+-- Index utilisateur
 
--- CreateIndex
-CREATE UNIQUE INDEX "ProjectMember_projectId_userId_key" ON "ProjectMember"("projectId", "userId");
+CREATE INDEX "ProjectMember_userId_idx"
+ON "ProjectMember"("userId");
 
--- AddForeignKey
-ALTER TABLE "ProjectMember" ADD CONSTRAINT "ProjectMember_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- Un utilisateur ne peut être affecté qu'une seule fois
+-- au même chantier.
 
--- AddForeignKey
-ALTER TABLE "ProjectMember" ADD CONSTRAINT "ProjectMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+CREATE UNIQUE INDEX "ProjectMember_projectId_userId_key"
+ON "ProjectMember"("projectId", "userId");
 
--- Reprise de l'existant : les chefs d'équipe et clients actuels gardent l'accès aux chantiers existants
+-- Relations
+
+ALTER TABLE "ProjectMember"
+ADD CONSTRAINT "ProjectMember_projectId_fkey"
+FOREIGN KEY ("projectId")
+REFERENCES "Project"("id")
+ON DELETE CASCADE
+ON UPDATE CASCADE;
+
+ALTER TABLE "ProjectMember"
+ADD CONSTRAINT "ProjectMember_userId_fkey"
+FOREIGN KEY ("userId")
+REFERENCES "User"("id")
+ON DELETE CASCADE
+ON UPDATE CASCADE;
+
+-- Reprise des accès historiques :
+-- tous les chefs et clients existants conservent
+-- l'accès à tous les chantiers existants.
+
 INSERT INTO "ProjectMember" ("id", "projectId", "userId")
-SELECT 'pm_' || md5(p."id" || u."id"), p."id", u."id"
+SELECT
+    'pm_' || md5(p."id" || u."id"),
+    p."id",
+    u."id"
 FROM "Project" p
 CROSS JOIN "User" u
-WHERE u."role" IN ('CHEF_CFO', 'CHEF_CFA', 'CLIENT');
+WHERE u."role" IN ('CHEF_CFO', 'CHEF_CFA', 'CLIENT')
+ON CONFLICT ("projectId", "userId") DO NOTHING;

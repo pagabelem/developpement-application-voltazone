@@ -84,33 +84,193 @@ export async function generateGrid() {
   redirect(`/parametres?grid=${created}`);
 }
 
+
 export async function saveTeam(fd: FormData) {
   const u = await mgr();
   const p = await currentProject();
+
   const d = z.object({
-    id: z.string().optional(), name: z.string().min(1), lot: z.enum(["CFO", "CFA"]), leaderId: z.string().optional(), leaderName: z.string().optional(),
-    matricule: z.string().optional(), headcount: z.coerce.number().int().min(0).default(0), phone: z.string().optional(), startDate: z.string().optional(), note: z.string().optional(),
+    id: z.string().optional(),
+    name: z.string().trim().min(1).max(120),
+    lot: z.enum(["CFO", "CFA"]),
+    leaderId: z.string().optional(),
+    leaderName: z.string().optional(),
+    matricule: z.string().optional(),
+    headcount: z.coerce.number().int().min(0).default(0),
+    phone: z.string().optional(),
+    startDate: z.string().optional(),
+    note: z.string().optional(),
   }).parse(Object.fromEntries(fd));
-  const zoneIds = fd.getAll("zoneIds").map(String);
+
+  const teamId = d.id?.trim() || null;
+  const leaderId = d.leaderId?.trim() || null;
+  const zoneIds = [...new Set(fd.getAll("zoneIds").map(String).filter(Boolean))];
+
+  // Vérifier que l'équipe appartient au chantier courant.
+  if (teamId) {
+    const existing = await prisma.team.findFirst({
+      where: {
+        id: teamId,
+        projectId: p.id,
+      },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new Error("Équipe introuvable dans ce chantier.");
+    }
+  }
+
+  // Vérifier que toutes les zones appartiennent au chantier courant.
+  if (zoneIds.length > 0) {
+    const count = await prisma.zone.count({
+      where: {
+        id: { in: zoneIds },
+        projectId: p.id,
+        deletedAt: null,
+      },
+    });
+
+    if (count !== zoneIds.length) {
+      throw new Error(
+        "Certaines zones sont invalides ou appartiennent à un autre chantier."
+      );
+    }
+  }
+
+  // Vérifier le responsable sélectionné.
+  if (leaderId) {
+    const expectedRole =
+      d.lot === "CFO" ? "CHEF_CFO" : "CHEF_CFA";
+
+    const leader = await prisma.user.findFirst({
+      where: {
+        id: leaderId,
+        active: true,
+        role: expectedRole,
+        projects: {
+          some: {
+            projectId: p.id,
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!leader) {
+      throw new Error(
+        "Le chef doit être actif, avoir le rôle correspondant au lot et être affecté à ce chantier."
+      );
+    }
+  }
+
+  const startDate = d.startDate
+    ? new Date(`${d.startDate}T00:00:00.000Z`)
+    : null;
+
+  if (startDate && Number.isNaN(startDate.getTime())) {
+    throw new Error("Date de début invalide.");
+  }
+
   const data = {
-    name: d.name, lot: d.lot, leaderId: d.leaderId || null, leaderName: d.leaderName || null, matricule: d.matricule || null, headcount: d.headcount,
-    phone: d.phone || null, startDate: d.startDate ? new Date(`${d.startDate}T00:00:00Z`) : null, note: d.note || null,
+    name: d.name,
+    lot: d.lot,
+    leaderId,
+    leaderName: d.leaderName?.trim() || null,
+    matricule: d.matricule?.trim() || null,
+    headcount: d.headcount,
+    phone: d.phone?.trim() || null,
+    startDate,
+    note: d.note?.trim() || null,
   };
-  const team = d.id
-    ? await prisma.team.update({ where: { id: d.id }, data: { ...data, zones: { set: zoneIds.map((id) => ({ id })) } } })
-    : await prisma.team.create({ data: { ...data, projectId: p.id, zones: { connect: zoneIds.map((id) => ({ id })) } } });
-  await prisma.workItem.updateMany({ where: { projectId: p.id, lot: d.lot, zoneId: { in: zoneIds }, teamId: null }, data: { teamId: team.id } });
-  await logAudit(u.id, "Team", team.id, d.id ? "UPDATE" : "CREATE", undefined, { ...data, zoneIds });
+
+  const team = await prisma.$transaction(async (tx) => {
+    const saved = teamId
+      ? await tx.team.update({
+          where: { id: teamId },
+          data: {
+            ...data,
+            zones: {
+              set: zoneIds.map((id) => ({ id })),
+            },
+          },
+        })
+      : await tx.team.create({
+          data: {
+            ...data,
+            projectId: p.id,
+            zones: {
+              connect: zoneIds.map((id) => ({ id })),
+            },
+          },
+        });
+
+    // Affecter uniquement les lignes encore sans équipe.
+    if (zoneIds.length > 0) {
+      await tx.workItem.updateMany({
+        where: {
+          projectId: p.id,
+          lot: d.lot,
+          zoneId: { in: zoneIds },
+          teamId: null,
+        },
+        data: {
+          teamId: saved.id,
+        },
+      });
+    }
+
+    return saved;
+  });
+
+  await logAudit(
+    u.id,
+    "Team",
+    team.id,
+    teamId ? "UPDATE" : "CREATE",
+    undefined,
+    { ...data, zoneIds }
+  );
+
   refreshAll();
 }
 
+
+
 export async function archiveTeam(fd: FormData) {
   const u = await mgr();
-  const id = String(fd.get("id"));
-  await prisma.team.update({ where: { id }, data: { deletedAt: new Date() } });
+  const p = await currentProject();
+
+  const id = String(fd.get("id") ?? "").trim();
+
+  if (!id) {
+    throw new Error("Identifiant d'équipe manquant.");
+  }
+
+  const team = await prisma.team.findFirst({
+    where: {
+      id,
+      projectId: p.id,
+      deletedAt: null,
+    },
+  });
+
+  if (!team) {
+    throw new Error("Équipe introuvable dans ce chantier.");
+  }
+
+  await prisma.team.update({
+    where: { id: team.id },
+    data: { deletedAt: new Date() },
+  });
+
   await logAudit(u.id, "Team", id, "ARCHIVE");
+
   refreshAll();
 }
+
 
 export async function setAggregation(fd: FormData) {
   const u = await mgr();
@@ -121,15 +281,92 @@ export async function setAggregation(fd: FormData) {
   refreshAll();
 }
 
+
 export async function createUser(fd: FormData) {
   const u = await requireUser();
-  if (!isAdmin(u)) throw new Error("Accès refusé");
-  const d = z.object({ name: z.string().min(2), email: z.string().email(), password: z.string().min(8), role: z.enum(["ADMIN", "CONDUCTEUR", "CHEF_CFO", "CHEF_CFA", "CLIENT"]) }).parse(Object.fromEntries(fd));
-  const lot = d.role === "CHEF_CFO" ? "CFO" : d.role === "CHEF_CFA" ? "CFA" : null;
-  const created = await prisma.user.create({ data: { name: d.name, email: d.email.toLowerCase(), role: d.role, lot, passwordHash: await bcrypt.hash(d.password, 10) } });
-  await logAudit(u.id, "User", created.id, "CREATE", undefined, { email: created.email, role: created.role });
+
+  if (!isAdmin(u)) {
+    throw new Error("Accès refusé");
+  }
+
+  const d = z.object({
+    name: z.string().trim().min(2),
+    email: z.string().email(),
+    password: z.string().min(8),
+    role: z.enum([
+      "ADMIN",
+      "CONDUCTEUR",
+      "CHEF_CFO",
+      "CHEF_CFA",
+      "CLIENT",
+    ]),
+  }).parse(Object.fromEntries(fd));
+
+  const projectIds = [
+    ...new Set(fd.getAll("projectIds").map(String).filter(Boolean)),
+  ];
+
+  const isRestricted =
+    d.role === "CHEF_CFO" ||
+    d.role === "CHEF_CFA" ||
+    d.role === "CLIENT";
+
+ 
+
+  const validProjects = projectIds.length
+    ? await prisma.project.findMany({
+        where: {
+          id: { in: projectIds },
+        },
+        select: { id: true },
+      })
+    : [];
+
+  if (validProjects.length !== projectIds.length) {
+    throw new Error("Un ou plusieurs chantiers sélectionnés sont invalides.");
+  }
+
+  const lot =
+    d.role === "CHEF_CFO"
+      ? "CFO"
+      : d.role === "CHEF_CFA"
+        ? "CFA"
+        : null;
+
+  const passwordHash = await bcrypt.hash(d.password, 10);
+
+  const created = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        name: d.name,
+        email: d.email.toLowerCase(),
+        role: d.role,
+        lot,
+        passwordHash,
+      },
+    });
+
+    if (isRestricted && projectIds.length > 0) {
+  await tx.projectMember.createMany({
+    data: projectIds.map((projectId) => ({
+      projectId,
+      userId: user.id,
+    })),
+  });
+}
+
+    return user;
+  });
+
+  await logAudit(u.id, "User", created.id, "CREATE", undefined, {
+    email: created.email,
+    role: created.role,
+    projets: projectIds.length,
+  });
+
   refreshAll();
 }
+
 
 export async function toggleUser(fd: FormData) {
   const u = await requireUser();

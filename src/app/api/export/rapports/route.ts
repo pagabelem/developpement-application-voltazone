@@ -39,7 +39,7 @@ export async function GET(req: Request) {
 
   // 1. Rapport journalier (celui demandé, sinon le plus récent)
   const rep = q.report
-    ? await prisma.dailyReport.findUnique({ where: { id: q.report }, include: { workers: true, systems: true } })
+    ? await prisma.dailyReport.findFirst({ where: { id: q.report, projectId: project.id }, include: { workers: true, systems: true } })
     : await prisma.dailyReport.findFirst({ where: { projectId: project.id }, orderBy: { date: "desc" }, include: { workers: true, systems: true } });
   const w1 = wb.addWorksheet("Rapport journalier");
   widths(w1, [38, 22, 22, 14, 50]);
@@ -183,7 +183,7 @@ export async function GET(req: Request) {
   // 7. Demande de matériel (masquée pour le profil Client)
   if (!client) {
     const mat = q.material
-      ? await prisma.materialRequest.findUnique({ where: { id: q.material }, include: { lines: { orderBy: { position: "asc" } } } })
+      ? await prisma.materialRequest.findFirst({ where: { id: q.material, projectId: project.id }, include: { lines: { orderBy: { position: "asc" } } } })
       : await prisma.materialRequest.findFirst({ where: { projectId: project.id }, orderBy: { number: "desc" }, include: { lines: { orderBy: { position: "asc" } } } });
     const w7 = wb.addWorksheet("Demande matériel");
     widths(w7, [8, 45, 18, 10, 12, 16, 20, 30]);

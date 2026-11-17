@@ -32,7 +32,7 @@ export default async function TachesPage({ searchParams }: { searchParams: Promi
     prisma.workItem.findMany({ where, include: { zone: true, system: true, team: { include: { leader: true } } }, orderBy: [{ code: "asc" }], take: 500 }),
     prisma.zone.findMany({ where: { projectId: project.id, deletedAt: null }, orderBy: { order: "asc" } }),
     prisma.system.findMany({ where: { projectId: project.id }, orderBy: [{ lot: "asc" }, { order: "asc" }] }),
-    sp.edit ? prisma.workItem.findUnique({ where: { id: sp.edit } }) : null,
+    sp.edit ? prisma.workItem.findFirst({ where: { id: sp.edit, projectId: project.id } }) : null,
   ]);
   const t = editing && canEdit(scope, editing) ? editing : null;
   const showForm = (manager && sp.new === "1") || !!t;

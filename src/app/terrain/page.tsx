@@ -49,7 +49,7 @@ export default async function TerrainPage({ searchParams }: { searchParams: Prom
   return (
     <main className="mx-auto max-w-md space-y-3 p-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">⚡ Saisie terrain</h1>
+        <div><h1 className="text-xl font-bold">⚡ Saisie terrain</h1><p className="text-xs text-slate-500">{project.name}</p></div>
         <Link href={sp.level ? `/terrain?zone=${sp.zone}` : sp.zone ? "/terrain" : "/dashboard"} className="text-sm underline">← Retour</Link>
       </div>
       {body}

@@ -67,6 +67,7 @@ export async function saveDailyReport(fd: FormData) {
   const existing = id
     ? await prisma.dailyReport.findUnique({ where: { id } })
     : await prisma.dailyReport.findUnique({ where: { projectId_date_site: { projectId: p.id, date, site } } });
+  if (existing && existing.projectId !== p.id) throw new Error("Rapport introuvable dans ce chantier.");
   if (existing?.managerVisaAt && !isManager(user)) throw new Error("Rapport visé par le conducteur : modification réservée aux responsables.");
 
   const workers = rowsOf(fd, "w", ["name", "role", "hours", "note"])
@@ -96,6 +97,8 @@ export async function signReport(fd: FormData) {
   const id = String(fd.get("id"));
   const who = fd.get("who") === "manager" ? "manager" : "leader";
   if (who === "manager" ? !isManager(user) : !canWrite(user)) throw new Error("Accès refusé");
+  const rep = await prisma.dailyReport.findFirst({ where: { id, projectId: (await currentProject()).id }, select: { id: true } });
+  if (!rep) throw new Error("Rapport introuvable dans ce chantier.");
   const now = new Date();
   await prisma.dailyReport.update({ where: { id }, data: who === "manager" ? { managerVisaBy: user.name, managerVisaAt: now } : { leaderVisaBy: user.name, leaderVisaAt: now } });
   await logAudit(user.id, "DailyReport", id, `VISA_${who.toUpperCase()}`);
@@ -238,7 +241,7 @@ export async function saveNc(fd: FormData) {
   }).parse(Object.fromEntries(fd));
   const fields = { date: parseDay(d.date) ?? utcDay(), zoneLabel: d.zoneLabel || null, system: d.system || null, action: d.action || null, responsible: d.responsible || null };
   if (d.id) {
-    const nc = await prisma.nonConformity.findUniqueOrThrow({ where: { id: d.id } });
+    const nc = await prisma.nonConformity.findFirstOrThrow({ where: { id: d.id, projectId: p.id } });
     await prisma.nonConformity.update({ where: { id: nc.id }, data: { ...fields, description: d.description?.trim() || nc.description, status: d.status, closedAt: d.status === "LEVE" ? nc.closedAt ?? new Date() : null } });
     await logAudit(user.id, "NonConformity", nc.id, "UPDATE", { status: nc.status }, { status: d.status });
   } else {
@@ -254,6 +257,7 @@ export async function saveMaterial(fd: FormData) {
   const user = await writer();
   const p = await currentProject();
   const id = txt(fd, "id");
+  if (id && !(await prisma.materialRequest.findFirst({ where: { id, projectId: p.id }, select: { id: true } }))) throw new Error("Demande introuvable dans ce chantier.");
   const date = parseDay(txt(fd, "date")) ?? utcDay();
   const status = z.enum(["BROUILLON", "ENVOYEE", "RECUE"]).parse(fd.get("status") ?? "BROUILLON");
    const lines = rowsOf(fd, "m", ["designation", "reference", "unit", "quantity", "wantedDate", "system", "note"])
@@ -284,6 +288,7 @@ export async function savePeriod(fd: FormData) {
   if (end < start) throw new Error("La date de fin doit être postérieure au début.");
   const data = { startDate: start, endDate: end, workType, zoneLabel: txt(fd, "zoneLabel"), system: txt(fd, "system"), work, percent: pct(fd, "percent"), note: txt(fd, "note") };
   const id = txt(fd, "id");
+  if (id && !(await prisma.periodLog.findFirst({ where: { id, projectId: p.id }, select: { id: true } }))) throw new Error("Période introuvable dans ce chantier.");
   const row = id ? await prisma.periodLog.update({ where: { id }, data }) : await prisma.periodLog.create({ data: { ...data, projectId: p.id } });
   await logAudit(user.id, "PeriodLog", row.id, id ? "UPDATE" : "CREATE", undefined, { du: isoDay(start), au: isoDay(end), workType });
   refreshAll();

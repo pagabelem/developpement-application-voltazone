@@ -52,6 +52,20 @@ export async function POST(req: Request) {
 
   const project = await currentProject();
 
+
+
+  
+  const scope = { id: entityId, projectId: project.id };
+  const owned = entity === "NC"
+    ? await prisma.nonConformity.findFirst({ where: scope, select: { id: true } })
+    : entity === "DAILY_REPORT"
+      ? await prisma.dailyReport.findFirst({ where: scope, select: { id: true } })
+      : await prisma.materialRequest.findFirst({ where: scope, select: { id: true } });
+  if (!owned) return Response.json({ error: "Élément introuvable dans ce chantier." }, { status: 404 });
+
+
+  
+
   if (!isVercel) {
     await mkdir(path.join(process.cwd(), "storage"), { recursive: true });
   }

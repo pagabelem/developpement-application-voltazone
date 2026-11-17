@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { currentProject, requireUser } from "@/lib/session";
+import { ARCHIVED, accessibleProjects, currentProject, requireUser } from "@/lib/session";
 import { isAdmin, isManager } from "@/lib/auth/permissions";
 import { gridStats } from "@/lib/grid";
 import { addLevel, addSystem, createUser, generateGrid, setAggregation, toggleUser } from "@/lib/actions/admin";
-import { deleteLevel, deleteSystem, deleteUser } from "@/lib/actions/delete";
+import { deleteLevel, deleteProject, deleteSystem, deleteUser } from "@/lib/actions/delete";
+import { archiveProject, createProject, setUserProjects } from "@/lib/actions/projects";
 import { DeleteDialog } from "@/components/delete-dialog";
 import { LotBadge, PageTitle, btn, btnLight, card, input } from "@/components/ui";
 import { saveProject } from "@/lib/actions/rapports";
@@ -21,10 +22,11 @@ export default async function ParametresPage({ searchParams }: { searchParams: P
   if (!isManager(user)) redirect("/dashboard");
   const admin = isAdmin(user);
   const project = await currentProject();
+  const projects = await accessibleProjects(user);
   const [levels, systems, users, stats] = await Promise.all([
     prisma.level.findMany({ where: { projectId: project.id }, orderBy: { order: "asc" } }),
     prisma.system.findMany({ where: { projectId: project.id }, orderBy: [{ lot: "asc" }, { order: "asc" }] }),
-    admin ? prisma.user.findMany({ orderBy: { createdAt: "asc" } }) : Promise.resolve([]),
+    admin ? prisma.user.findMany({ orderBy: { createdAt: "asc" }, include: { projects: { select: { projectId: true } } } }) : Promise.resolve([]),
     gridStats(project.id),
   ]);
 
@@ -32,10 +34,46 @@ export default async function ParametresPage({ searchParams }: { searchParams: P
     <div className="max-w-3xl space-y-4">
       <PageTitle>Paramètres</PageTitle>
 
+      <section className={card}>
+        <h2 className="mb-1 font-semibold">Chantiers</h2>
+        <p className="mb-3 text-xs text-slate-500">Le chantier affiché se choisit dans le menu « Chantier » à gauche. Les réglages ci-dessous (identité, niveaux, systèmes, listes) concernent le chantier affiché.</p>
+        <ul className="mb-4 divide-y text-sm">
+          {projects.map((p) => (
+            <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
+              <span className={p.status === ARCHIVED ? "text-slate-400" : ""}>
+                <b>{p.name}</b>{p.client ? ` — ${p.client}` : ""}
+                {p.id === project.id && <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-800">affiché</span>}
+                {p.status === ARCHIVED && <span className="ml-2 text-xs">(archivé)</span>}
+              </span>
+              <span className="flex items-center gap-3">
+                <form action={archiveProject}><input type="hidden" name="id" value={p.id} /><button className="text-xs underline">{p.status === ARCHIVED ? "Réactiver" : "Archiver"}</button></form>
+                {admin && projects.length > 1 && <DeleteDialog action={deleteProject} fields={{ id: p.id }} label="Supprimer" title={`Supprimer le chantier « ${p.name} » ?`} message="TOUTES les données de ce chantier (zones, suivi, rapports, pointage, matériel, fichiers…) seront supprimées définitivement." phrase={p.name.trim()} />}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <form action={createProject} className="grid gap-3 border-t pt-3 md:grid-cols-2">
+          <h3 className="font-medium md:col-span-2">Nouveau chantier</h3>
+          <L label="Nom du chantier"><input name="name" required className={input} /></L>
+          <L label="Client"><input name="client" className={input} /></L>
+          <L label="Société"><input name="company" className={input} /></L>
+          <L label="Heures sup. au-delà de (h / semaine)"><input name="overtimeAfter" type="number" min={1} max={100} required defaultValue={44} className={input} /></L>
+          <L label="Reprendre la structure de">
+            <select name="copyFrom" defaultValue={project.id} className={input}>
+              <option value="">— Chantier vide —</option>
+              {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </L>
+          <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" name="copyZones" /> Copier aussi les zones (la grille sera générée)</label>
+          <p className="text-xs text-slate-500 md:col-span-2">La structure reprise comprend : niveaux, systèmes, bâtiments, postes d'avancement, types de travaux et points d'autocontrôle. Aucune donnée de suivi, d'équipe ou de rapport n'est copiée.</p>
+          <div><button className={btn}>Créer et ouvrir ce chantier</button></div>
+        </form>
+      </section>
+
 
 
 <section className={card}>
-  <h2 className="mb-2 font-semibold">Identité du chantier</h2>
+  <h2 className="mb-2 font-semibold">Identité du chantier affiché</h2>
   <form action={saveProject} className="grid gap-3 md:grid-cols-2">
     <L label="Nom du projet"><input name="name" required defaultValue={project.name} className={input} /></L>
     <L label="Client"><input name="client" defaultValue={project.client ?? ""} placeholder="Ex. ADM" className={input} /></L>
@@ -129,11 +167,33 @@ export default async function ParametresPage({ searchParams }: { searchParams: P
               </li>
             ))}
           </ul>
+          <div className="mb-4 rounded border border-slate-200 p-3">
+            <h3 className="mb-1 text-sm font-semibold">Accès aux chantiers</h3>
+            <p className="mb-2 text-xs text-slate-500">Administrateurs et conducteurs voient tous les chantiers. Cochez ceux que chaque chef d'équipe ou client peut voir.</p>
+            <div className="divide-y">
+              {users.filter((x) => x.role !== "ADMIN" && x.role !== "CONDUCTEUR").map((x) => (
+                <form key={x.id} action={setUserProjects} className="flex flex-wrap items-center gap-3 py-2 text-sm">
+                  <input type="hidden" name="userId" value={x.id} />
+                  <span className="w-56 font-medium">{x.name} <span className="text-xs font-normal text-slate-400">({x.role})</span></span>
+                  {projects.map((p) => (
+                    <label key={p.id} className="flex items-center gap-1"><input type="checkbox" name="projectIds" value={p.id} defaultChecked={x.projects.some((m) => m.projectId === p.id)} />{p.name}</label>
+                  ))}
+                  <button className={btnLight}>Enregistrer</button>
+                </form>
+              ))}
+            </div>
+          </div>
           <form action={createUser} className="grid gap-2 md:grid-cols-2">
             <L label="Nom"><input name="name" required className={input} /></L>
             <L label="E-mail"><input name="email" type="email" required className={input} /></L>
             <L label="Mot de passe (8 caractères min.)"><input name="password" type="password" minLength={8} required className={input} /></L>
             <L label="Rôle"><select name="role" className={input}><option value="CHEF_CFO">Chef d'équipe CFO</option><option value="CHEF_CFA">Chef d'équipe CFA</option><option value="CONDUCTEUR">Conducteur</option><option value="CLIENT">Client / MOA</option><option value="ADMIN">Administrateur</option></select></L>
+            <fieldset className="md:col-span-2">
+              <legend className="text-xs text-slate-600">Chantiers accessibles (chefs d'équipe et clients)</legend>
+              <div className="mt-1 flex flex-wrap gap-3 text-sm">
+                {projects.map((p) => <label key={p.id} className="flex items-center gap-1"><input type="checkbox" name="projectIds" value={p.id} defaultChecked={p.id === project.id} />{p.name}</label>)}
+              </div>
+            </fieldset>
             <div><button className={btn}>Créer l'utilisateur</button></div>
           </form>
         </section>

@@ -13,6 +13,28 @@ import path from "node:path";
 import { redirect } from "next/navigation";
 
 const refresh = () => revalidatePath("/", "layout");
+
+
+
+
+// Supprime les fichiers physiques (Supabase Storage et dossier local) ; ne bloque jamais la suppression en base
+async function removeStoredFiles(list: { id: string; storagePath: string | null }[]) {
+  const remote = list.map((a) => a.storagePath).filter((x): x is string => !!x);
+  if (remote.length) {
+    try {
+      const { supabase, STORAGE_BUCKET } = await import("@/lib/supabase");
+      const { error } = await supabase.storage.from(STORAGE_BUCKET).remove(remote);
+      if (error) console.error("Suppression Supabase :", error);
+    } catch (e) {
+      console.error("Suppression Supabase :", e);
+    }
+  }
+  await Promise.all(list.map((a) => unlink(path.join(process.cwd(), "storage", a.id)).catch(() => {})));
+}
+
+
+
+
 const id = (fd: FormData) => String(fd.get("id") ?? "");
 
 async function admin() {
@@ -73,10 +95,36 @@ export async function deleteZone(fd: FormData) {
 // --- Équipes
 export async function deleteTeam(fd: FormData) {
   const u = await admin();
-  const team = await prisma.team.findUnique({ where: { id: id(fd) } });
-  if (!team) return;
-  await prisma.$transaction([prisma.workItem.updateMany({ where: { teamId: team.id }, data: { teamId: null } }), prisma.team.delete({ where: { id: team.id } })]);
-  await logAudit(u.id, "Team", team.id, "DELETE", { name: team.name, lot: team.lot });
+  const p = await currentProject();
+  const teamId = id(fd);
+
+  const team = await prisma.team.findFirst({
+    where: {
+      id: teamId,
+      projectId: p.id,
+    },
+  });
+
+  if (!team) {
+    throw new Error("Équipe introuvable dans ce chantier.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.workItem.updateMany({
+      where: { teamId: team.id },
+      data: { teamId: null },
+    });
+
+    await tx.team.delete({
+      where: { id: team.id },
+    });
+  });
+
+  await logAudit(u.id, "Team", team.id, "DELETE", {
+    name: team.name,
+    lot: team.lot,
+  });
+
   refresh();
 }
 
@@ -238,7 +286,29 @@ export async function deleteAttachment(fd: FormData) {
   const a = await prisma.attachment.findUnique({ where: { id: id(fd) } });
   if (!a) return;
   await prisma.attachment.delete({ where: { id: a.id } });
-  await unlink(path.join(process.cwd(), "storage", a.id)).catch(() => {});
+  await removeStoredFiles([a]);
   await logAudit(u.id, "Attachment", a.id, "DELETE", { filename: a.filename, entity: a.entity });
+  refresh();
+}
+
+
+
+
+
+
+
+
+// --- Chantier entier (administrateur) : l'admin doit taper le nom du chantier
+export async function deleteProject(fd: FormData) {
+  const u = await admin();
+  const p = await prisma.project.findUnique({ where: { id: id(fd) } });
+  if (!p) return;
+  if ((await prisma.project.count()) < 2) throw new Error("Impossible de supprimer le dernier chantier.");
+  need(fd, p.name.trim());
+  const files = await prisma.attachment.findMany({ where: { projectId: p.id }, select: { id: true, storagePath: true } });
+  // les lignes de suivi d'abord : leur lien vers les zones est protégé (RESTRICT)
+  await prisma.$transaction([prisma.workItem.deleteMany({ where: { projectId: p.id } }), prisma.project.delete({ where: { id: p.id } })]);
+  await removeStoredFiles(files);
+  await logAudit(u.id, "Project", p.id, "DELETE", { name: p.name, client: p.client }, { fichiersSupprimes: files.length });
   refresh();
 }

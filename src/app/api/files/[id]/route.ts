@@ -27,6 +27,13 @@ export async function GET(
     return new Response("Introuvable", { status: 404 });
   }
 
+
+  if (user.role !== "ADMIN" && user.role !== "CONDUCTEUR") {
+    const member = await prisma.projectMember.findFirst({ where: { projectId: a.projectId, userId: user.id }, select: { id: true } });
+    if (!member) return new Response("Accès refusé", { status: 403 });
+  }
+
+
   if (a.entity === "MATERIAL" && user.role === "CLIENT") {
     return new Response("Accès refusé", { status: 403 });
   }

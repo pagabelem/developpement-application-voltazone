@@ -20,7 +20,7 @@ export default async function MaterielDetail({ params }: { params: Promise<{ id:
   const project = await currentProject();
   const write = canWrite(user), admin = isAdmin(user);
   const [req, sites] = await Promise.all([
-    id === "new" ? null : prisma.materialRequest.findUnique({ where: { id }, include: { lines: { orderBy: { position: "asc" } } } }),
+    id === "new" ? null : prisma.materialRequest.findFirst({ where: { id, projectId: project.id }, include: { lines: { orderBy: { position: "asc" } } } }),
     getRef(project.id, "BUILDING"),
   ]);
 

@@ -21,7 +21,7 @@ export default async function BlocagesPage({ searchParams }: { searchParams: Pro
       orderBy: [{ status: "asc" }, { openedAt: "desc" }],
       take: 200,
     }),
-    sp.new ? prisma.workItem.findUnique({ where: { id: sp.new }, include: { zone: true, level: true, system: true } }) : null,
+    sp.new ? prisma.workItem.findFirst({ where: { id: sp.new, projectId: project.id }, include: { zone: true, level: true, system: true } }) : null,
   ]);
 
   return (

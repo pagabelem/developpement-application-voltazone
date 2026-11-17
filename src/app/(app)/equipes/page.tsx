@@ -39,7 +39,7 @@ export default async function EquipesPage() {
   const [teams, zones, leaders] = await Promise.all([
     prisma.team.findMany({ where: { projectId: project.id, deletedAt: null }, include: { zones: { select: { id: true, name: true, code: true } }, leader: true }, orderBy: [{ lot: "asc" }, { name: "asc" }] }),
     prisma.zone.findMany({ where: { projectId: project.id, deletedAt: null }, orderBy: { order: "asc" }, select: { id: true, name: true, code: true } }),
-    prisma.user.findMany({ where: { active: true, role: { in: ["CHEF_CFO", "CHEF_CFA"] } }, select: { id: true, name: true } }),
+    prisma.user.findMany({ where: { active: true, role: { in: ["CHEF_CFO", "CHEF_CFA"] }, projects: { some: { projectId: project.id } } }, select: { id: true, name: true } }),
   ]);
   const gaps = (["CFO", "CFA"] as const)
     .map((lot) => {

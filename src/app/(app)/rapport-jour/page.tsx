@@ -25,7 +25,7 @@ export default async function RapportJourPage({ searchParams }: { searchParams: 
     getRef(project.id, "BUILDING"),
     getRef(project.id, "REPORT_SYSTEM"),
   ]);
-  const current = sp.id ? await prisma.dailyReport.findUnique({ where: { id: sp.id }, include: { workers: true, systems: true } }) : null;
+  const current = sp.id ? await prisma.dailyReport.findFirst({ where: { id: sp.id, projectId: project.id }, include: { workers: true, systems: true } }) : null;
   const creating = write && !current && sp.new === "1";
   const newDate = parseDay(sp.date) ?? utcDay();
   const newSite = sp.site ?? "";

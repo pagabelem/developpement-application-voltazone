@@ -20,7 +20,7 @@ export default async function HistoriquePage({ searchParams }: { searchParams: P
   const write = canWrite(user), admin = isAdmin(user);
   const [list, editing] = await Promise.all([
     prisma.periodLog.findMany({ where: { projectId: project.id }, orderBy: [{ startDate: "desc" }, { endDate: "desc" }], take: 500 }),
-    sp.edit ? prisma.periodLog.findUnique({ where: { id: sp.edit } }) : null,
+    sp.edit ? prisma.periodLog.findFirst({ where: { id: sp.edit, projectId: project.id } }) : null,
   ]);
   const sumDays = list.reduce((s, p) => s + days(p.startDate, p.endDate), 0);
   const covered = mergedDays(list.map((p) => ({ start: p.startDate, end: p.endDate })));

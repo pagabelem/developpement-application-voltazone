@@ -10,6 +10,7 @@ const STEPS = [
   ["6. Équipes", "Remplacez les noms génériques par les vrais chefs d'équipe et affectez-les aux zones. Une alerte signale les zones sans équipe."],
   ["7. Tableau de bord", "Les indicateurs se calculent depuis les données. Le sélecteur « Base de calcul » évite de compter deux fois les mêmes travaux (grille et tâches)."],
   ["8. Partage PDF et Excel", "Rapports → Imprimer / PDF, ou exports Excel et CSV (format des classeurs d'origine). Vérifiez la politique de partage avant envoi."],
+  ["9. Plusieurs chantiers", "Le menu « Chantier » (barre de gauche) change de chantier ; tout l'écran suit. Créez un chantier dans Paramètres › Chantiers (avec copie possible de la structure d'un autre). Chefs d'équipe et clients ne voient que les chantiers qui leur sont affectés (Paramètres › Utilisateurs › Accès aux chantiers)."],
 ];
 
 export default async function AidePage() {
