@@ -6,9 +6,9 @@ import { canEdit, getEditScope } from "@/lib/auth/permissions";
 import { rowProgress } from "@/lib/domain/calc";
 import { Bar, LotBadge, StatusBadge } from "@/components/ui";
 import { QtyCell } from "@/components/qty-cell";
+import { Icon } from "@/components/icons";
 
-const big = "block rounded-lg border bg-white p-5 text-xl font-semibold shadow-sm active:bg-slate-100";
-
+const big = "block rounded-2xl border border-slate-200 bg-white p-5 text-xl font-semibold shadow-sm transition active:scale-[.99] active:bg-volt-50";
 export default async function TerrainPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const user = await requireUser();
@@ -47,11 +47,17 @@ export default async function TerrainPage({ searchParams }: { searchParams: Prom
   }
 
   return (
-    <main className="mx-auto max-w-md space-y-3 p-4">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-xl font-bold">⚡ Saisie terrain</h1><p className="text-xs text-slate-500">{project.name}</p></div>
-        <Link href={sp.level ? `/terrain?zone=${sp.zone}` : sp.zone ? "/terrain" : "/dashboard"} className="text-sm underline">← Retour</Link>
-      </div>
+       <main className="mx-auto max-w-md space-y-4 px-4 pb-10">
+      <header className="sticky top-0 z-20 -mx-4 flex items-center justify-between gap-3 border-b border-slate-200/70 bg-white/80 px-4 py-3 backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <span className="logo-mark !h-10 !w-10"><Icon name="bolt" filled className="h-5 w-5" /></span>
+          <div className="leading-tight">
+            <h1 className="font-display text-lg font-bold">Saisie terrain</h1>
+            <p className="max-w-[10rem] truncate text-xs text-slate-500">{project.name}</p>
+          </div>
+        </div>
+        <Link href={sp.level ? `/terrain?zone=${sp.zone}` : sp.zone ? "/terrain" : "/dashboard"} className="v-btn-light !px-3 !py-1.5 text-sm">← Retour</Link>
+      </header>
       {body}
     </main>
   );
